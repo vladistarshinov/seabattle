@@ -1,22 +1,45 @@
 const record = document.getElementById('record'),
-      shot = document.getElementById('shot'),
-      hit = document.getElementById('hit'),
-      dead = document.getElementById('dead'),
-      enemy = document.getElementById('enemy'),
-      again = document.getElementById('again');
+    shot = document.getElementById('shot'),
+    hit = document.getElementById('hit'),
+    dead = document.getElementById('dead'),
+    enemy = document.getElementById('enemy'),
+    again = document.getElementById('again'),
+    header = document.querySelector('.header');
 
-// При старте игры все параметры равны 0
+
+const game = {
+    ships: [
+        {
+            location: ['26', '36', '46', '56'],
+            hit: ['', '', '', '']
+        },
+        {
+            location: ['11', '12', '13'],
+            hit: ['', '', '']
+        },
+        {
+            location: ['69', '79'],
+            hit: ['', '']
+        },
+        {
+            location: ['32'],
+            hit: ['']
+        }
+    ],
+
+    shipCount: 4,
+
+};
+
 const play = {
-    record: 0,
+    record: localStorage.getItem('seaBattleRecord') || 0,
     shot: 0,
     hit: 0,
     dead: 0,
-    // сеттер - метод для отображения вычислений, прописаны действия: счетчик выстрелов и отображение на экране счетчика выстрелов
     set updateData(data) {
         this[data] += 1;
         this.render();
     },
-    // рендерим значения
     render() {
         record.textContent = this.record;
         shot.textContent = this.shot;
@@ -25,56 +48,71 @@ const play = {
     }
 };
 
-// После каждого клика реакция программы с методами на отображение
 const show = {
-    hit() {
-
+    hit(elem) {
+        this.changeClass(elem, 'hit');
     },
-    // надо принять target с fire(), можем назвать как угодно, например, elem - ведь это элемент
     miss(elem) {
-        // ссылка на объект show - упрощенно, добавляем класс miss (при нажатии ставятся крестики)
         this.changeClass(elem, 'miss');
     },
-    dead() {
-        
+    dead(elem) {
+        this.changeClass(elem, 'dead');
     },
-    // будет менять класс нашего элемента 
     changeClass(elem, value) {
         elem.className = value;
     }
 };
 
-// Создается объект события event, содержащий коорд ячейки
 const fire = (event) => {
-    // console.log(event.target);
+
     const target = event.target;
-    // Для начала проверяем, попали ли мы или нет
+
+    if (game.shipCount == 0 || target.classList.length > 0 || target.tagName !== 'TD') return;
+
     show.miss(target);
-    // обращаемся к сеттеру - какие данные мы хотим поменять
     play.updateData = 'shot';
 
+    for (let i = 0; i < game.ships.length; i++) {
+        const ship = game.ships[i];
+        const index = ship.location.indexOf(target.id);
+        if (index >= 0) {
+            show.hit(target);
+            play.updateData = 'hit';
+            ship.hit[index] = 'x';
+            const life = ship.hit.indexOf('');
+
+            if (life < 0) {
+                play.updateData = 'dead';
+                for (const id of ship.location) {
+                    show.dead(document.getElementById(id));
+                }
+
+                game.shipCount -= 1;
+
+                if (game.shipCount < 1) {
+                    header.textContent = 'Игра окончена!';
+                    header.style.color = 'red';
+
+                    if (play.shot < play.record || play.record === 0) {
+
+                        localStorage.setItem('seaBattleRecord', play.shot);
+                        play.record = play.shot;
+                        play.render();
+                    }
+                }
+            }
+        }
+    }
+
 };
 
 
-// Инициализация игры через стрелочную функцию (упрощенная от function expression в ES6)
 const init = () => {
     enemy.addEventListener('click', fire);
+    play.render();
+    again.addEventListener('click', () => {
+        location.reload();
+    });
 };
 
 init();
-
-/*
-// function expression = можно вызвать функцию после объявления
-const init = function () {
-    console.log('init');
-}
-init();
-
-
-start();
-// function declaration - можно вызвать функцию до объявления
-function start() {
-    console.log('start');
-} 
-
-*/
